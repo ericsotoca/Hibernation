@@ -32,80 +32,106 @@
         button:hover {
             background-color: #0056b3;
         }
+        /* Style pour le bouton Test */
         button#test-button {
-             background-color: #ffc107;
-             color: #212529;
+             background-color: #ffc107; /* Jaune */
+             color: #212529; /* Texte sombre */
         }
          button#test-button:hover {
-             background-color: #e0a800;
+             background-color: #e0a800; /* Jaune plus foncé */
         }
         .copy-button {
             padding: 5px 10px;
             font-size: 12px;
-            background-color: #28a745;
+            background-color: #28a745; /* Vert */
+            color: white;
             margin-left: 10px;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Empêche le bouton de rétrécir */
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
         }
         .copy-button:hover {
-            background-color: #218838;
+            background-color: #218838; /* Vert plus foncé */
         }
         .copy-button.copied {
-            background-color: #17a2b8;
+            background-color: #17a2b8; /* Cyan quand copié */
         }
         #commands {
             margin-top: 20px;
-            padding: 10px;
+            padding: 15px;
             background-color: #e9ecef;
             border-radius: 5px;
             text-align: left;
+            border: 1px solid #ced4da;
         }
         .command-container {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: 10px; /* Espace entre texte et bouton */
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc; /* Séparateur visuel léger */
+        }
+        .command-container:last-child {
+             border-bottom: none; /* Pas de bordure pour le dernier */
+             margin-bottom: 0;
+             padding-bottom: 0;
         }
         .command-text {
-            flex-grow: 1;
-            word-wrap: break-word;
+            flex-grow: 1; /* Prend l'espace disponible */
+            word-wrap: break-word; /* Retour à la ligne pour les commandes longues */
+            line-height: 1.4;
         }
         #timer {
-            font-size: 24px;
+            font-size: 1.5em; /* Taille relative */
             margin-top: 20px;
-            color: #dc3545;
+            color: #dc3545; /* Rouge */
+            font-weight: bold;
+            height: 30px; /* Réserve de l'espace même vide */
         }
         select {
-            padding: 5px;
+            padding: 8px 12px;
             margin: 5px;
             font-size: 16px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
         }
         p {
             margin-top: 20px;
-            line-height: 1.5;
+            line-height: 1.6; /* Meilleure lisibilité */
         }
         code {
-            background-color: #dcdcdc;
-            padding: 2px 4px;
-            border-radius: 3px;
+            background-color: #f8f9fa; /* Fond légèrement gris */
+            padding: 3px 6px;
+            border-radius: 4px;
             font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-            word-break: break-all;
+            color: #343a40;
+            border: 1px solid #dee2e6;
+            word-break: break-all; /* Assure le retour à la ligne dans la balise code */
+            display: inline-block; /* Pour que le padding et la bordure s'appliquent bien */
+            margin-top: 5px; /* Espace au-dessus de la commande */
         }
         .important-note {
-            color: #dc3545;
+            color: #856404; /* Texte brun-jaune */
             font-weight: bold;
-            margin-top: 15px;
-            padding: 10px;
-            border: 1px solid #dc3545;
+            margin-top: 25px;
+            padding: 15px;
+            border: 1px solid #ffeeba; /* Bordure jaune clair */
             border-radius: 5px;
-            background-color: #f8d7da;
+            background-color: #fff3cd; /* Fond jaune très clair */
         }
+         .important-note strong {
+             color: #721c24; /* Rouge foncé pour l'emphase */
+         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Planificateur d'hibernation et de réveil</h1>
-        <p>Choisissez un délai pour mettre l'ordinateur en hibernation :</p>
+
+        <label for="hibernateDelay">Mettre en hibernation dans :</label>
         <select id="hibernateDelay">
             <option value="10">10 minutes</option>
             <option value="20">20 minutes</option>
@@ -113,7 +139,10 @@
             <option value="60">1 heure</option>
             <option value="120">2 heures</option>
         </select>
-        <p>Choisissez un délai pour réveiller l'ordinateur (après l'hibernation) :</p>
+
+        <br><br>
+
+        <label for="wakeDelay">Réveiller après :</label>
         <select id="wakeDelay">
             <option value="1">1 heure</option>
             <option value="4">4 heures</option>
@@ -121,107 +150,135 @@
             <option value="12">12 heures</option>
             <option value="24">24 heures</option>
         </select>
-        <br>
+
+        <br><br>
+
         <button onclick="generateCommands()">Générer les commandes</button>
         <button id="test-button" onclick="generateTestCommands()">Test (3 min + 3 min)</button>
         <button onclick="generateCancelCommand()">Annuler les tâches</button>
-        <div id="commands">Cliquez sur un bouton pour obtenir les commandes.</div>
+
         <div id="timer"></div>
+        <div id="commands">Cliquez sur un bouton pour générer les commandes nécessaires.</div>
+
+
         <p><strong>Comment exécuter les commandes :</strong><br>
-           1. Cliquez sur la loupe ou la barre de recherche en bas à gauche (barre des tâches).<br>
-           2. Tapez <code>cmd</code>, faites un clic droit sur "Invite de commandes" et sélectionnez "Exécuter en tant qu'administrateur".<br>
-           3. Cliquez sur les boutons "Copier" ci-dessus pour copier chaque commande.<br>
-           4. Dans la fenêtre noire de CMD, faites un clic droit pour coller la commande, puis appuyez sur Entrée.<br>
-           5. Exécutez les deux commandes l'une après l'autre.<br>
-           <em>Si le bouton "Copier" ne fonctionne pas, sélectionnez le texte de la commande manuellement (double-clic ou triple-clic sur la ligne de commande) et faites Ctrl+C.</em>
+           1. Cliquez sur la loupe ou la barre de recherche Windows.<br>
+           2. Tapez <code>cmd</code>.<br>
+           3. Faites un clic droit sur "Invite de commandes" et sélectionnez "Exécuter en tant qu'administrateur".<br>
+           4. Cliquez sur les boutons "Copier" ci-dessus pour copier chaque commande.<br>
+           5. Dans la fenêtre noire de l'Invite de commandes, faites un clic droit pour coller la commande, puis appuyez sur Entrée.<br>
+           6. Répétez pour la deuxième commande.<br>
+           <em>Si le bouton "Copier" ne fonctionne pas, sélectionnez le texte de la commande manuellement (double-clic ou triple-clic sur la ligne commençant par <code>schtasks</code>) et faites Ctrl+C.</em>
         </p>
+
         <div class="important-note">
-            <strong>TRÈS IMPORTANT POUR LE RÉVEIL :</strong> Assurez-vous que les "minuteurs de sortie de veille" sont activés dans vos options d'alimentation Windows. <br>
-            (Recherchez "Modifier les paramètres d'alimentation" > Cliquez sur "Modifier les paramètres du mode" actuel > Cliquez sur "Modifier les paramètres d'alimentation avancés" > Développez "Veille" > Développez "Autoriser les minuteurs de sortie de veille" > Mettez sur "Activer"). Sans cela, le réveil ne fonctionnera pas.
+            <strong>TRÈS IMPORTANT POUR LE RÉVEIL :</strong> Assurez-vous que les "minuteurs de sortie de veille" sont activés dans vos options d'alimentation Windows.<br>
+            Allez dans: Panneau de configuration > Options d'alimentation > Modifier les paramètres du mode (pour votre mode actuel) > Modifier les paramètres d'alimentation avancés > Développez "Veille" > Développez "Autoriser les minuteurs de sortie de veille" > Réglez sur "Activer" (pour "Sur batterie" et/ou "Sur secteur").<br>
+            <strong>Sans ce réglage, la tâche de réveil sera créée mais ne pourra pas sortir l'ordinateur de l'hibernation.</strong>
         </div>
     </div>
 
     <script>
         let timerInterval;
-        const HIBERNATE_TASK_NAME = "ScheduledHibernateTask";
-        const WAKE_TASK_NAME = "ScheduledWakeUpTask";
+        // Noms uniques pour les tâches planifiées
+        const HIBERNATE_TASK_NAME = "MaTacheHibernationPlanifiee";
+        const WAKE_TASK_NAME = "MaTacheReveilPlanifiee";
 
-        // Fonction pour copier dans le presse-papiers
+        // --- Fonction pour copier dans le presse-papiers ---
         function copyToClipboard(button) {
             const command = decodeURIComponent(button.getAttribute('data-command'));
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(command).then(() => {
-                    button.classList.add('copied');
-                    button.innerText = 'Copié !';
-                    setTimeout(() => {
-                        button.classList.remove('copied');
-                        button.innerText = 'Copier';
-                    }, 2000);
+                    updateButtonState(button, true); // Met à jour l'état du bouton (succès)
                 }).catch(err => {
                     console.error('Erreur avec navigator.clipboard:', err);
-                    fallbackCopy(button, command);
+                    fallbackCopy(button, command); // Tente la méthode de secours
                 });
             } else {
-                fallbackCopy(button, command);
+                fallbackCopy(button, command); // Utilise la méthode de secours si API non dispo
             }
         }
 
-        // Méthode de secours pour copier
+        // --- Méthode de secours pour copier ---
         function fallbackCopy(button, command) {
             const textarea = document.createElement('textarea');
             textarea.value = command;
-            textarea.style.position = 'absolute';
+            // Styles pour cacher le textarea
+            textarea.style.position = 'fixed';
+            textarea.style.top = '-9999px';
             textarea.style.left = '-9999px';
-            textarea.style.top = '0';
             document.body.appendChild(textarea);
+            textarea.focus();
             textarea.select();
+            let success = false;
             try {
-                document.execCommand('copy');
-                button.classList.add('copied');
-                button.innerText = 'Copié !';
-                setTimeout(() => {
-                    button.classList.remove('copied');
-                    button.innerText = 'Copier';
-                }, 2000);
+                success = document.execCommand('copy'); // Tente la copie
             } catch (err) {
                 console.error('Erreur avec document.execCommand:', err);
-                alert('Erreur lors de la copie. Veuillez sélectionner le texte de la commande manuellement (double-clic ou triple-clic) et faire Ctrl+C.');
+                success = false;
             }
-            document.body.removeChild(textarea);
+            document.body.removeChild(textarea); // Nettoie le DOM
+            updateButtonState(button, success); // Met à jour l'état du bouton
+            if (!success) {
+                 alert('La copie a échoué. Veuillez sélectionner manuellement la commande (double-clic) et faire Ctrl+C.');
+            }
         }
 
-        // Fonction pour formater Date et Heure pour schtasks
+        // --- Met à jour l'apparence du bouton après tentative de copie ---
+        function updateButtonState(button, success) {
+             if (success) {
+                 button.classList.add('copied');
+                 button.innerText = 'Copié !';
+                 // Rétablit le texte après 2 secondes
+                 setTimeout(() => {
+                     button.classList.remove('copied');
+                     button.innerText = 'Copier';
+                 }, 2000);
+             } else {
+                 // Optionnel: indiquer l'échec sur le bouton si alert() n'est pas utilisé
+                 // button.innerText = 'Échec';
+                 // setTimeout(() => { button.innerText = 'Copier'; }, 2000);
+             }
+        }
+
+
+        // --- Fonction pour formater Date et Heure pour schtasks (JJ/MM/AAAA HH:MM) ---
         function formatDateTimeForSchtasks(dateObj) {
             const day = String(dateObj.getDate()).padStart(2, '0');
-            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Mois 0-11 -> 1-12
             const year = dateObj.getFullYear();
             const hours = String(dateObj.getHours()).padStart(2, '0');
             const minutes = String(dateObj.getMinutes()).padStart(2, '0');
 
-            const dateStr = `${day}/${month}/${year}`;
-            const timeStr = `${hours}:${minutes}`;
+            const dateStr = `${day}/${month}/${year}`; // Format attendu par /sd en fr-FR
+            const timeStr = `${hours}:${minutes}`;    // Format attendu par /st
             return { dateStr, timeStr };
         }
 
-        // Génère les commandes standard
+        // --- Génère les commandes standard ---
         function generateCommands() {
             const hibernateDelayMinutes = parseInt(document.getElementById('hibernateDelay').value);
             const wakeDelayHours = parseInt(document.getElementById('wakeDelay').value);
 
             const now = new Date();
+            // Calcule l'heure d'hibernation
             const hibernateTime = new Date(now.getTime() + hibernateDelayMinutes * 60 * 1000);
             const { dateStr: hibernateDateStr, timeStr: hibernateTimeStr } = formatDateTimeForSchtasks(hibernateTime);
 
+            // Calcule l'heure de réveil (basée sur l'heure d'hibernation)
             const wakeTime = new Date(hibernateTime.getTime() + wakeDelayHours * 60 * 60 * 1000);
             const { dateStr: wakeDateStr, timeStr: wakeTimeStr } = formatDateTimeForSchtasks(wakeTime);
 
+            // Commande pour planifier l'hibernation via schtasks
             const hibernateCommand = `schtasks /create /tn "${HIBERNATE_TASK_NAME}" /tr "shutdown /h /f" /sc once /sd ${hibernateDateStr} /st ${hibernateTimeStr} /ru SYSTEM /rl HIGHEST /f`;
 
-            // Commande pour planifier le réveil - OPTION /wk SUPPRIMÉE
+            // Commande pour planifier le réveil via schtasks - SANS /wk
+            // /it : Permet à la tâche d'interagir avec le bureau si nécessaire (utile pour lancer une application visible)
             const wakeCommand = `schtasks /create /tn "${WAKE_TASK_NAME}" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f /it`;
 
+            // Affichage des commandes générées
             document.getElementById('commands').innerHTML = `
-                <p><strong>Note :</strong> Exécutez ces commandes dans une Invite de commandes (cmd) ouverte <strong>en tant qu'administrateur</strong>.</p>
+                <p style="margin-top:0; margin-bottom:15px; font-weight:bold;">Exécutez ces commandes dans une Invite de commandes (cmd) ouverte en tant qu'administrateur :</p>
                 <div class="command-container">
                     <div class="command-text">1. Planifier l'hibernation pour <strong>${hibernateTimeStr} le ${hibernateDateStr}</strong> :<br><code>${hibernateCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(hibernateCommand)}" onclick="copyToClipboard(this)">Copier</button>
@@ -232,90 +289,114 @@
                 </div>
             `;
 
-            startTimer(hibernateDelayMinutes);
+            startTimer(hibernateDelayMinutes); // Démarre le compte à rebours visuel
         }
 
-        // Génère les commandes de test (3 min + 3 min)
+        // --- Génère les commandes de test (3 min + 3 min) ---
         function generateTestCommands() {
-            const hibernateDelayMinutes = 3;
-            const wakeDelayMinutes = 3;
+            const hibernateDelayMinutes = 3; // Délai test hibernation
+            const wakeDelayMinutes = 3;    // Délai test réveil (après hibernation)
 
             const now = new Date();
+            // Calcule l'heure d'hibernation test
             const hibernateTime = new Date(now.getTime() + hibernateDelayMinutes * 60 * 1000);
             const { dateStr: hibernateDateStr, timeStr: hibernateTimeStr } = formatDateTimeForSchtasks(hibernateTime);
 
+            // Calcule l'heure de réveil test
             const wakeTime = new Date(hibernateTime.getTime() + wakeDelayMinutes * 60 * 1000);
              const { dateStr: wakeDateStr, timeStr: wakeTimeStr } = formatDateTimeForSchtasks(wakeTime);
 
+            // Commande hibernation test
             const hibernateCommand = `schtasks /create /tn "${HIBERNATE_TASK_NAME}" /tr "shutdown /h /f" /sc once /sd ${hibernateDateStr} /st ${hibernateTimeStr} /ru SYSTEM /rl HIGHEST /f`;
 
-            // Commande pour planifier le réveil test - OPTION /wk SUPPRIMÉE
+            // Commande réveil test - SANS /wk
             const wakeCommand = `schtasks /create /tn "${WAKE_TASK_NAME}" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f /it`;
 
+            // Affichage des commandes test
             document.getElementById('commands').innerHTML = `
-                <p><strong>Note :</strong> Exécutez ces commandes dans une Invite de commandes (cmd) ouverte <strong>en tant qu'administrateur</strong>.</p>
+                <p style="margin-top:0; margin-bottom:15px; font-weight:bold;"><strong>Mode Test :</strong> Exécutez ces commandes dans CMD (admin) :</p>
                 <div class="command-container">
-                    <div class="command-text"><strong>Mode Test :</strong><br>1. Planifier l'hibernation pour <strong>${hibernateTimeStr} le ${hibernateDateStr}</strong> (dans 3 min) :<br><code>${hibernateCommand}</code></div>
+                    <div class="command-text">1. Planifier l'hibernation test pour <strong>${hibernateTimeStr} le ${hibernateDateStr}</strong> (dans ${hibernateDelayMinutes} min) :<br><code>${hibernateCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(hibernateCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
                 <div class="command-container">
-                    <div class="command-text">2. Planifier le réveil pour <strong>${wakeTimeStr} le ${wakeDateStr}</strong> (3 min après hibernation) :<br><code>${wakeCommand}</code></div>
+                    <div class="command-text">2. Planifier le réveil test pour <strong>${wakeTimeStr} le ${wakeDateStr}</strong> (${wakeDelayMinutes} min après hibernation) :<br><code>${wakeCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(wakeCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
             `;
 
-            startTimer(hibernateDelayMinutes);
+            startTimer(hibernateDelayMinutes); // Démarre le compte à rebours test
         }
 
-        // Génère les commandes pour annuler les tâches planifiées
+        // --- Génère les commandes pour annuler les tâches planifiées ---
         function generateCancelCommand() {
+            // Commande pour supprimer la tâche d'hibernation
             const cancelHibernate = `schtasks /delete /tn "${HIBERNATE_TASK_NAME}" /f`;
+            // Commande pour supprimer la tâche de réveil
             const cancelWake = `schtasks /delete /tn "${WAKE_TASK_NAME}" /f`;
+
+            // Affichage des commandes d'annulation
             document.getElementById('commands').innerHTML = `
-                 <p><strong>Note :</strong> Exécutez ces commandes dans une Invite de commandes (cmd) ouverte <strong>en tant qu'administrateur</strong>.</p>
+                 <p style="margin-top:0; margin-bottom:15px; font-weight:bold;">Exécutez ces commandes dans CMD (admin) pour annuler :</p>
                 <div class="command-container">
-                    <div class="command-text">1. Commande pour annuler l'hibernation programmée :<br><code>${cancelHibernate}</code></div>
+                    <div class="command-text">1. Annuler l'hibernation programmée :<br><code>${cancelHibernate}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(cancelHibernate)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
                 <div class="command-container">
-                    <div class="command-text">2. Commande pour annuler le réveil programmé :<br><code>${cancelWake}</code></div>
+                    <div class="command-text">2. Annuler le réveil programmé :<br><code>${cancelWake}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(cancelWake)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
-                 <p>Vous pouvez exécuter ces commandes même si les tâches n'existent pas (elles afficheront une erreur sans conséquence).</p>
+                 <p style="font-size: 0.9em; margin-top: 10px;">Vous pouvez exécuter ces commandes même si les tâches n'existent pas ou ont déjà été exécutées (elles afficheront simplement une erreur sans conséquence).</p>
             `;
-            clearTimer();
+            clearTimer(); // Arrête et efface le compte à rebours s'il y en avait un
         }
 
-        // Démarre le compte à rebours visuel pour l'hibernation
+        // --- Démarre le compte à rebours visuel pour l'hibernation ---
         function startTimer(minutes) {
-            clearTimer();
-            let timeLeft = minutes * 60;
+            clearTimer(); // Arrête tout timer précédent
+            let timeLeft = Math.max(0, minutes * 60); // Temps en secondes, minimum 0
             const timerDisplay = document.getElementById('timer');
-            if (timeLeft <= 0) return;
+
+            if (timeLeft <= 0) {
+                 timerDisplay.innerText = "Hibernation immédiate (si délai 0)";
+                 return;
+            }
 
             const updateDisplay = () => {
-                if (timeLeft < 0) {
+                if (timeLeft < 0) { // Sécurité, ne devrait pas arriver avec clearInterval
                     clearTimer();
                     timerDisplay.innerText = "Hibernation programmée atteinte.";
                     return;
                 }
                 const min = Math.floor(timeLeft / 60);
                 const sec = timeLeft % 60;
-                timerDisplay.innerText = `Hibernation prévue dans : ${min}m ${sec}s`;
-                timeLeft--;
+                // Affiche le temps restant formaté
+                timerDisplay.innerText = `Hibernation prévue dans : ${min} min ${String(sec).padStart(2, '0')} sec`;
+
+                if (timeLeft === 0) {
+                     // Le timer atteint zéro, on peut arrêter l'intervalle
+                     clearTimer();
+                     // On pourrait changer le message ici aussi
+                     setTimeout(() => { timerDisplay.innerText = "Hibernation imminente..."; }, 1000); // Petit délai avant message final
+                 } else {
+                     timeLeft--; // Décrémente pour le prochain tick
+                 }
             };
 
-            updateDisplay();
-            timerInterval = setInterval(updateDisplay, 1000);
+            updateDisplay(); // Affichage immédiat du temps initial
+            timerInterval = setInterval(updateDisplay, 1000); // Répète toutes les secondes
         }
 
-        // Arrête et efface le compte à rebours
+        // --- Arrête et efface le compte à rebours ---
         function clearTimer() {
             if (timerInterval) {
-                clearInterval(timerInterval);
-                timerInterval = null;
+                clearInterval(timerInterval); // Arrête l'intervalle
+                timerInterval = null; // Réinitialise la variable
             }
-            document.getElementById('timer').innerText = '';
+            // Efface l'affichage du timer seulement si une commande d'annulation est cliquée explicitement
+            // Ne pas effacer systématiquement au début de startTimer pour éviter un flash
+            // L'effacement est fait dans generateCancelCommand
+             // document.getElementById('timer').innerText = '';
         }
     </script>
 </body>
