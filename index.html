@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificateur d'hibernation et de réveil</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #commands {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            word-wrap: break-word;
+            text-align: left;
+        }
+        #timer {
+            font-size: 24px;
+            margin-top: 20px;
+            color: #dc3545;
+        }
+        select {
+            padding: 5px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        p {
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Planificateur d'hibernation et de réveil</h1>
+        <p>Choisissez un délai pour mettre l'ordinateur en hibernation :</p>
+        <select id="hibernateDelay">
+            <option value="10">10 minutes</option>
+            <option value="20">20 minutes</option>
+            <option value="30">30 minutes</option>
+        </select>
+        <p>Choisissez un délai pour réveiller l'ordinateur :</p>
+        <select id="wakeDelay">
+            <option value="1">1 heure</option>
+            <option value="4">4 heures</option>
+            <option value="8">8 heures</option>
+        </select>
+        <br>
+        <button onclick="generateCommands()">Générer les commandes</button>
+        <button onclick="generateTestCommands()">Test (5 min + 5 min)</button>
+        <button onclick="generateCancelCommand()">Annuler</button>
+        <div id="commands">Cliquez sur un bouton pour obtenir les commandes.</div>
+        <div id="timer"></div>
+        <p><strong>Comment exécuter les commandes :</strong><br>
+           1. Cliquez sur la loupe ou la barre de recherche en bas à gauche (barre des tâches).<br>
+           2. Tapez <code>cmd</code>, faites un clic droit sur "Invite de commandes" et sélectionnez "Exécuter en tant qu'administrateur".<br>
+           3. Copiez chaque commande ci-dessus, collez-la dans la fenêtre noire (clic droit pour coller), et appuyez sur Entrée.<br>
+           4. Exécutez les deux commandes l'une après l'autre.
+        </p>
+    </div>
+
+    <script>
+        let timerInterval;
+
+        function generateCommands() {
+            const hibernateDelay = parseInt(document.getElementById('hibernateDelay').value);
+            const wakeDelay = parseInt(document.getElementById('wakeDelay').value);
+            const hibernateSeconds = hibernateDelay * 60;
+            const hibernateCommand = `shutdown /h /t ${hibernateSeconds}`;
+
+            // Calculer l'heure de réveil
+            const now = new Date();
+            const hibernateTime = new Date(now.getTime() + hibernateDelay * 60 * 1000);
+            const wakeTime = new Date(hibernateTime.getTime() + wakeDelay * 60 * 60 * 1000);
+            const wakeTimeStr = wakeTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            const wakeDateStr = wakeTime.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-');
+            const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "start msedge" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /f`;
+
+            document.getElementById('commands').innerText = 
+                `1. Commande pour l'hibernation dans ${hibernateDelay} minutes :\n${hibernateCommand}\n\n` +
+                `2. Commande pour le réveil à ${wakeTimeStr} le ${wakeDateStr} (ouvre Microsoft Edge) :\n${wakeCommand}`;
+
+            startTimer(hibernateDelay);
+        }
+
+        function generateTestCommands() {
+            const hibernateDelay = 5; // 5 minutes pour l'hibernation
+            const wakeDelay = 5; // 5 minutes après l'hibernation pour le réveil
+            const hibernateSeconds = hibernateDelay * 60;
+            const hibernateCommand = `shutdown /h /t ${hibernateSeconds}`;
+
+            // Calculer l'heure de réveil
+            const now = new Date();
+            const hibernateTime = new Date(now.getTime() + hibernateDelay * 60 * 1000);
+            const wakeTime = new Date(hibernateTime.getTime() + wakeDelay * 60 * 1000);
+            const wakeTimeStr = wakeTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            const wakeDateStr = wakeTime.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-');
+            const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "start msedge" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /f`;
+
+            document.getElementById('commands').innerText = 
+                `Mode Test :\n` +
+                `1. Commande pour l'hibernation dans 5 minutes :\n${hibernateCommand}\n\n` +
+                `2. Commande pour le réveil 5 minutes après (à ${wakeTimeStr} le ${wakeDateStr}, ouvre Microsoft Edge) :\n${wakeCommand}`;
+
+            startTimer(hibernateDelay);
+        }
+
+        function generateCancelCommand() {
+            const cancelHibernate = `shutdown /a`;
+            const cancelWake = `schtasks /delete /tn WakeUpTask /f`;
+            document.getElementById('commands').innerText = 
+                `1. Commande pour annuler l'hibernation :\n${cancelHibernate}\n\n` +
+                `2. Commande pour annuler le réveil programmé :\n${cancelWake}`;
+            clearTimer();
+        }
+
+        function startTimer(minutes) {
+            clearTimer();
+            let timeLeft = minutes * 60;
+            const timerDisplay = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearTimer();
+                    timerDisplay.innerText = "Temps écoulé !";
+                    return;
+                }
+                const min = Math.floor(timeLeft / 60);
+                const sec = timeLeft % 60;
+                timerDisplay.innerText = `Temps restant : ${min}m ${sec}s`;
+                timeLeft--;
+            }, 1000);
+        }
+
+        function clearTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                document.getElementById('timer').innerText = '';
+            }
+        }
+    </script>
+</body>
+</html>
