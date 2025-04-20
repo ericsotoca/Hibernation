@@ -32,6 +32,13 @@
         button:hover {
             background-color: #0056b3;
         }
+        button#test-button {
+             background-color: #ffc107;
+             color: #212529;
+        }
+         button#test-button:hover {
+             background-color: #e0a800;
+        }
         .copy-button {
             padding: 5px 10px;
             font-size: 12px;
@@ -82,6 +89,16 @@
             padding: 2px 4px;
             border-radius: 3px;
             font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            word-break: break-all;
+        }
+        .important-note {
+            color: #dc3545;
+            font-weight: bold;
+            margin-top: 15px;
+            padding: 10px;
+            border: 1px solid #dc3545;
+            border-radius: 5px;
+            background-color: #f8d7da;
         }
     </style>
 </head>
@@ -106,7 +123,7 @@
         </select>
         <br>
         <button onclick="generateCommands()">Générer les commandes</button>
-        <button onclick="generateTestCommands()">Test (3 min + 3 min)</button>
+        <button id="test-button" onclick="generateTestCommands()">Test (3 min + 3 min)</button>
         <button onclick="generateCancelCommand()">Annuler les tâches</button>
         <div id="commands">Cliquez sur un bouton pour obtenir les commandes.</div>
         <div id="timer"></div>
@@ -118,7 +135,10 @@
            5. Exécutez les deux commandes l'une après l'autre.<br>
            <em>Si le bouton "Copier" ne fonctionne pas, sélectionnez le texte de la commande manuellement (double-clic ou triple-clic sur la ligne de commande) et faites Ctrl+C.</em>
         </p>
-        <p><strong>Important :</strong> Pour que le réveil fonctionne, l'option "Autoriser les minuteurs de sortie de veille" doit être activée dans les options d'alimentation avancées de Windows.</p>
+        <div class="important-note">
+            <strong>TRÈS IMPORTANT POUR LE RÉVEIL :</strong> Assurez-vous que les "minuteurs de sortie de veille" sont activés dans vos options d'alimentation Windows. <br>
+            (Recherchez "Modifier les paramètres d'alimentation" > Cliquez sur "Modifier les paramètres du mode" actuel > Cliquez sur "Modifier les paramètres d'alimentation avancés" > Développez "Veille" > Développez "Autoriser les minuteurs de sortie de veille" > Mettez sur "Activer"). Sans cela, le réveil ne fonctionnera pas.
+        </div>
     </div>
 
     <script>
@@ -173,13 +193,13 @@
         // Fonction pour formater Date et Heure pour schtasks
         function formatDateTimeForSchtasks(dateObj) {
             const day = String(dateObj.getDate()).padStart(2, '0');
-            const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Mois 0-11 -> 1-12
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
             const year = dateObj.getFullYear();
             const hours = String(dateObj.getHours()).padStart(2, '0');
             const minutes = String(dateObj.getMinutes()).padStart(2, '0');
 
-            const dateStr = `${day}/${month}/${year}`; // Format JJ/MM/AAAA pour schtasks /sd
-            const timeStr = `${hours}:${minutes}`;    // Format HH:MM pour schtasks /st
+            const dateStr = `${day}/${month}/${year}`;
+            const timeStr = `${hours}:${minutes}`;
             return { dateStr, timeStr };
         }
 
@@ -189,22 +209,16 @@
             const wakeDelayHours = parseInt(document.getElementById('wakeDelay').value);
 
             const now = new Date();
-            // Calculer l'heure d'hibernation
             const hibernateTime = new Date(now.getTime() + hibernateDelayMinutes * 60 * 1000);
             const { dateStr: hibernateDateStr, timeStr: hibernateTimeStr } = formatDateTimeForSchtasks(hibernateTime);
 
-            // Calculer l'heure de réveil (basee sur l'heure d'hibernation calculee)
             const wakeTime = new Date(hibernateTime.getTime() + wakeDelayHours * 60 * 60 * 1000);
             const { dateStr: wakeDateStr, timeStr: wakeTimeStr } = formatDateTimeForSchtasks(wakeTime);
 
-            // Commande pour planifier l'hibernation
-            // Utilise /f pour forcer la fermeture des applications
             const hibernateCommand = `schtasks /create /tn "${HIBERNATE_TASK_NAME}" /tr "shutdown /h /f" /sc once /sd ${hibernateDateStr} /st ${hibernateTimeStr} /ru SYSTEM /rl HIGHEST /f`;
 
-            // Commande pour planifier le réveil
-            // /wk specifica que la tâche peut réveiller l'ordinateur
-            const wakeCommand = `schtasks /create /tn "${WAKE_TASK_NAME}" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f /it /wk`;
-             // Note: /it (interactive) might require user login for the task to run fully depending on what it does. /wk is key for waking.
+            // Commande pour planifier le réveil - OPTION /wk SUPPRIMÉE
+            const wakeCommand = `schtasks /create /tn "${WAKE_TASK_NAME}" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f /it`;
 
             document.getElementById('commands').innerHTML = `
                 <p><strong>Note :</strong> Exécutez ces commandes dans une Invite de commandes (cmd) ouverte <strong>en tant qu'administrateur</strong>.</p>
@@ -218,49 +232,44 @@
                 </div>
             `;
 
-            startTimer(hibernateDelayMinutes); // Démarre le compte à rebours visuel pour l'hibernation
+            startTimer(hibernateDelayMinutes);
         }
 
-        // Génère les commandes de test (1 min + 1 min)
+        // Génère les commandes de test (3 min + 3 min)
         function generateTestCommands() {
-            const hibernateDelayMinutes = 3; // 3 minute pour l'hibernation
-            const wakeDelayMinutes = 3;    // 3 minute après l'hibernation pour le réveil
+            const hibernateDelayMinutes = 3;
+            const wakeDelayMinutes = 3;
 
             const now = new Date();
-            // Calculer l'heure d'hibernation
             const hibernateTime = new Date(now.getTime() + hibernateDelayMinutes * 60 * 1000);
             const { dateStr: hibernateDateStr, timeStr: hibernateTimeStr } = formatDateTimeForSchtasks(hibernateTime);
 
-            // Calculer l'heure de réveil
             const wakeTime = new Date(hibernateTime.getTime() + wakeDelayMinutes * 60 * 1000);
              const { dateStr: wakeDateStr, timeStr: wakeTimeStr } = formatDateTimeForSchtasks(wakeTime);
 
-            // Commande pour planifier l'hibernation test
-             const hibernateCommand = `schtasks /create /tn "${HIBERNATE_TASK_NAME}" /tr "shutdown /h /f" /sc once /sd ${hibernateDateStr} /st ${hibernateTimeStr} /ru SYSTEM /rl HIGHEST /f`;
+            const hibernateCommand = `schtasks /create /tn "${HIBERNATE_TASK_NAME}" /tr "shutdown /h /f" /sc once /sd ${hibernateDateStr} /st ${hibernateTimeStr} /ru SYSTEM /rl HIGHEST /f`;
 
-            // Commande pour planifier le réveil test
-            const wakeCommand = `schtasks /create /tn "${WAKE_TASK_NAME}" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f /it /wk`;
+            // Commande pour planifier le réveil test - OPTION /wk SUPPRIMÉE
+            const wakeCommand = `schtasks /create /tn "${WAKE_TASK_NAME}" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f /it`;
 
             document.getElementById('commands').innerHTML = `
                 <p><strong>Note :</strong> Exécutez ces commandes dans une Invite de commandes (cmd) ouverte <strong>en tant qu'administrateur</strong>.</p>
                 <div class="command-container">
-                    <div class="command-text"><strong>Mode Test :</strong><br>1. Planifier l'hibernation pour <strong>${hibernateTimeStr} le ${hibernateDateStr}</strong> (dans 1 min) :<br><code>${hibernateCommand}</code></div>
+                    <div class="command-text"><strong>Mode Test :</strong><br>1. Planifier l'hibernation pour <strong>${hibernateTimeStr} le ${hibernateDateStr}</strong> (dans 3 min) :<br><code>${hibernateCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(hibernateCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
                 <div class="command-container">
-                    <div class="command-text">2. Planifier le réveil pour <strong>${wakeTimeStr} le ${wakeDateStr}</strong> (1 min après hibernation) :<br><code>${wakeCommand}</code></div>
+                    <div class="command-text">2. Planifier le réveil pour <strong>${wakeTimeStr} le ${wakeDateStr}</strong> (3 min après hibernation) :<br><code>${wakeCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(wakeCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
             `;
 
-            startTimer(hibernateDelayMinutes); // Démarre le compte à rebours
+            startTimer(hibernateDelayMinutes);
         }
 
         // Génère les commandes pour annuler les tâches planifiées
         function generateCancelCommand() {
-            // Commande pour supprimer la tâche d'hibernation
             const cancelHibernate = `schtasks /delete /tn "${HIBERNATE_TASK_NAME}" /f`;
-            // Commande pour supprimer la tâche de réveil
             const cancelWake = `schtasks /delete /tn "${WAKE_TASK_NAME}" /f`;
             document.getElementById('commands').innerHTML = `
                  <p><strong>Note :</strong> Exécutez ces commandes dans une Invite de commandes (cmd) ouverte <strong>en tant qu'administrateur</strong>.</p>
@@ -274,7 +283,7 @@
                 </div>
                  <p>Vous pouvez exécuter ces commandes même si les tâches n'existent pas (elles afficheront une erreur sans conséquence).</p>
             `;
-            clearTimer(); // Arrête et efface le compte à rebours
+            clearTimer();
         }
 
         // Démarre le compte à rebours visuel pour l'hibernation
@@ -282,7 +291,7 @@
             clearTimer();
             let timeLeft = minutes * 60;
             const timerDisplay = document.getElementById('timer');
-            if (timeLeft <= 0) return; // Ne rien faire si délai 0 ou négatif
+            if (timeLeft <= 0) return;
 
             const updateDisplay = () => {
                 if (timeLeft < 0) {
@@ -296,7 +305,7 @@
                 timeLeft--;
             };
 
-            updateDisplay(); // Affichage immédiat
+            updateDisplay();
             timerInterval = setInterval(updateDisplay, 1000);
         }
 
