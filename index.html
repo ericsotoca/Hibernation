@@ -37,6 +37,8 @@
             font-size: 12px;
             background-color: #28a745;
             margin-left: 10px;
+            /* Empêche le bouton de rétrécir ou grandir */
+            flex-shrink: 0;
         }
         .copy-button:hover {
             background-color: #218838;
@@ -54,11 +56,15 @@
         .command-container {
             margin-bottom: 10px;
             display: flex;
-            align-items: center;
+            align-items: center; /* Aligne verticalement le texte et le bouton */
+            justify-content: space-between; /* Espace entre texte et bouton */
+            gap: 10px; /* Espace entre texte et bouton */
         }
         .command-text {
-            flex-grow: 1;
-            word-wrap: break-word;
+            flex-grow: 1; /* Permet au texte de prendre l'espace disponible */
+            word-wrap: break-word; /* Retour à la ligne si la commande est trop longue */
+            /* Optionnel : pour éviter que le texte ne soit trop écrasé */
+            /* min-width: 0; */
         }
         #timer {
             font-size: 24px;
@@ -85,7 +91,7 @@
             <option value="20">20 minutes</option>
             <option value="30">30 minutes</option>
         </select>
-        <p>Choisissez un délai pour réveiller l'ordinateur :</p>
+        <p>Choisissez un délai pour réveiller l'ordinateur (après l'hibernation) :</p>
         <select id="wakeDelay">
             <option value="1">1 heure</option>
             <option value="4">4 heures</option>
@@ -103,144 +109,205 @@
            3. Cliquez sur les boutons "Copier" ci-dessus pour copier chaque commande.<br>
            4. Dans la fenêtre noire de CMD, faites un clic droit pour coller la commande, puis appuyez sur Entrée.<br>
            5. Exécutez les deux commandes l'une après l'autre.<br>
-           <em>Si le bouton "Copier" ne fonctionne pas, sélectionnez le texte de la commande manuellement et faites Ctrl+C.</em>
+           <em>Si le bouton "Copier" ne fonctionne pas, sélectionnez le texte de la commande manuellement (double-clic ou triple-clic sur la ligne de commande) et faites Ctrl+C.</em>
         </p>
     </div>
 
     <script>
         let timerInterval;
 
+        // Fonction pour copier dans le presse-papiers
         function copyToClipboard(button) {
+            // Récupère la commande depuis l'attribut data-command et la décode
             const command = decodeURIComponent(button.getAttribute('data-command'));
+
+            // Utilise l'API moderne Clipboard si disponible et sécurisée
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(command).then(() => {
+                    // Succès de la copie
                     button.classList.add('copied');
                     button.innerText = 'Copié !';
+                    // Rétablit le texte du bouton après 2 secondes
                     setTimeout(() => {
                         button.classList.remove('copied');
                         button.innerText = 'Copier';
                     }, 2000);
                 }).catch(err => {
+                    // Échec de l'API moderne, utilise la méthode de secours
+                    console.error('Erreur avec navigator.clipboard:', err);
                     fallbackCopy(button, command);
                 });
             } else {
+                // API moderne non disponible, utilise la méthode de secours
                 fallbackCopy(button, command);
             }
         }
 
+        // Méthode de secours pour copier (utilise document.execCommand)
         function fallbackCopy(button, command) {
             const textarea = document.createElement('textarea');
             textarea.value = command;
+            // Styles pour rendre le textarea invisible et hors de l'écran
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '0';
             document.body.appendChild(textarea);
-            textarea.select();
+            textarea.select(); // Sélectionne le contenu
             try {
-                document.execCommand('copy');
+                document.execCommand('copy'); // Tente de copier
+                // Succès de la copie (méthode de secours)
                 button.classList.add('copied');
                 button.innerText = 'Copié !';
+                // Rétablit le texte du bouton après 2 secondes
                 setTimeout(() => {
                     button.classList.remove('copied');
                     button.innerText = 'Copier';
                 }, 2000);
             } catch (err) {
-                alert('Erreur lors de la copie. Sélectionnez le texte de la commande manuellement et faites Ctrl+C.');
+                // Échec de la copie (méthode de secours)
+                console.error('Erreur avec document.execCommand:', err);
+                alert('Erreur lors de la copie. Veuillez sélectionner le texte de la commande manuellement (double-clic ou triple-clic) et faire Ctrl+C.');
             }
+            // Supprime le textarea temporaire
             document.body.removeChild(textarea);
         }
 
+        // Génère les commandes standard
         function generateCommands() {
-            const hibernateDelay = parseInt(document.getElementById('hibernateDelay').value);
-            const wakeDelay = parseInt(document.getElementById('wakeDelay').value);
+            const hibernateDelay = parseInt(document.getElementById('hibernateDelay').value); // en minutes
+            const wakeDelay = parseInt(document.getElementById('wakeDelay').value); // en heures
             const hibernateSeconds = hibernateDelay * 60;
             const hibernateCommand = `shutdown /h /t ${hibernateSeconds}`;
 
             // Calculer l'heure de réveil
             const now = new Date();
+            // Ajoute le délai d'hibernation en millisecondes
             const hibernateTime = new Date(now.getTime() + hibernateDelay * 60 * 1000);
+            // Ajoute le délai de réveil (en heures) en millisecondes
             const wakeTime = new Date(hibernateTime.getTime() + wakeDelay * 60 * 60 * 1000);
-            const wakeTimeStr = wakeTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            const wakeDateStr = wakeTime.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-');
-            const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "start msedge" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /f`;
 
+            // Formatte la date et l'heure pour schtasks (JJ-MM-AAAA et HH:MM)
+            // Attention: getMonth() renvoie 0-11, donc +1. Ajoute des zéros si nécessaire.
+            const day = String(wakeTime.getDate()).padStart(2, '0');
+            const month = String(wakeTime.getMonth() + 1).padStart(2, '0'); // Mois 0-11 -> 1-12
+            const year = wakeTime.getFullYear();
+            const hours = String(wakeTime.getHours()).padStart(2, '0');
+            const minutes = String(wakeTime.getMinutes()).padStart(2, '0');
+
+            const wakeDateStr = `${day}/${month}/${year}`; // Format JJ/MM/AAAA pour schtasks /sd
+            const wakeTimeStr = `${hours}:${minutes}`;    // Format HH:MM pour schtasks /st
+
+            // Commande pour planifier le réveil. Ouvre Edge par défaut.
+            // /tn : Nom de la tâche. /tr : Commande à exécuter. /sc : Fréquence (une seule fois).
+            // /sd : Date de début. /st : Heure de début. /f : Force la création si la tâche existe déjà.
+            // /ru SYSTEM : Exécute la tâche avec les privilèges système (peut aider au réveil)
+            // /rl HIGHEST : Exécute avec les privilèges les plus élevés
+            const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f`;
+
+            // Met à jour le contenu HTML de la div #commands
             document.getElementById('commands').innerHTML = `
                 <div class="command-container">
-                    <div class="command-text">1. Commande pour l'hibernation dans ${hibernateDelay} minutes :<br>${hibernateCommand}</div>
+                    <div class="command-text">1. Commande pour l'hibernation dans <strong>${hibernateDelay} minutes</strong> :<br><code>${hibernateCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(hibernateCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
                 <div class="command-container">
-                    <div class="command-text">2. Commande pour le réveil à ${wakeTimeStr} le ${wakeDateStr} (ouvre Microsoft Edge) :<br>${wakeCommand}</div>
+                    <div class="command-text">2. Commande pour le réveil programmé à <strong>${wakeTimeStr} le ${wakeDateStr}</strong> (ouvre Microsoft Edge) :<br><code>${wakeCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(wakeCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
             `;
 
-            startTimer(hibernateDelay);
+            startTimer(hibernateDelay); // Démarre le compte à rebours
         }
 
+        // Génère les commandes de test (5 min + 5 min)
         function generateTestCommands() {
             const hibernateDelay = 5; // 5 minutes pour l'hibernation
-            const wakeDelay = 5; // 5 minutes après l'hibernation pour le réveil
+            const wakeDelayMinutes = 5; // 5 minutes après l'hibernation pour le réveil
             const hibernateSeconds = hibernateDelay * 60;
             const hibernateCommand = `shutdown /h /t ${hibernateSeconds}`;
 
             // Calculer l'heure de réveil
             const now = new Date();
             const hibernateTime = new Date(now.getTime() + hibernateDelay * 60 * 1000);
-            const wakeTime = new Date(hibernateTime.getTime() + wakeDelay * 60 * 1000);
-            const wakeTimeStr = wakeTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            const wakeDateStr = wakeTime.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-');
-            const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "start msedge" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /f`;
+            // Ajoute le délai de réveil (en minutes ici pour le test)
+            const wakeTime = new Date(hibernateTime.getTime() + wakeDelayMinutes * 60 * 1000);
 
+            // Formatte la date et l'heure pour schtasks
+            const day = String(wakeTime.getDate()).padStart(2, '0');
+            const month = String(wakeTime.getMonth() + 1).padStart(2, '0');
+            const year = wakeTime.getFullYear();
+            const hours = String(wakeTime.getHours()).padStart(2, '0');
+            const minutes = String(wakeTime.getMinutes()).padStart(2, '0');
+
+            const wakeDateStr = `${day}/${month}/${year}`; // Format JJ/MM/AAAA
+            const wakeTimeStr = `${hours}:${minutes}`;    // Format HH:MM
+
+            const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "cmd /c \\"start msedge\\"" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /ru SYSTEM /rl HIGHEST /f`;
+
+            // Met à jour le contenu HTML
             document.getElementById('commands').innerHTML = `
                 <div class="command-container">
-                    <div class="command-text">Mode Test :<br>1. Commande pour l'hibernation dans 5 minutes :<br>${hibernateCommand}</div>
+                    <div class="command-text"><strong>Mode Test :</strong><br>1. Commande pour l'hibernation dans <strong>5 minutes</strong> :<br><code>${hibernateCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(hibernateCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
                 <div class="command-container">
-                    <div class="command-text">2. Commande pour le réveil 5 minutes après (à ${wakeTimeStr} le ${wakeDateStr}, ouvre Microsoft Edge) :<br>${wakeCommand}</div>
+                    <div class="command-text">2. Commande pour le réveil <strong>5 minutes après</strong> (à ${wakeTimeStr} le ${wakeDateStr}, ouvre Microsoft Edge) :<br><code>${wakeCommand}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(wakeCommand)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
             `;
 
-            startTimer(hibernateDelay);
+            startTimer(hibernateDelay); // Démarre le compte à rebours
         }
 
+        // Génère les commandes pour annuler
         function generateCancelCommand() {
-            const cancelHibernate = `shutdown /a`;
-            const cancelWake = `schtasks /delete /tn WakeUpTask /f`;
+            const cancelHibernate = `shutdown /a`; // Annule un arrêt/redémarrage/hibernation planifié
+            const cancelWake = `schtasks /delete /tn WakeUpTask /f`; // Supprime la tâche planifiée
             document.getElementById('commands').innerHTML = `
                 <div class="command-container">
-                    <div class="command-text">1. Commande pour annuler l'hibernation :<br>${cancelHibernate}</div>
+                    <div class="command-text">1. Commande pour annuler l'hibernation programmée :<br><code>${cancelHibernate}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(cancelHibernate)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
                 <div class="command-container">
-                    <div class="command-text">2. Commande pour annuler le réveil programmé :<br>${cancelWake}</div>
+                    <div class="command-text">2. Commande pour annuler le réveil programmé :<br><code>${cancelWake}</code></div>
                     <button class="copy-button" data-command="${encodeURIComponent(cancelWake)}" onclick="copyToClipboard(this)">Copier</button>
                 </div>
             `;
-            clearTimer();
+            clearTimer(); // Arrête et efface le compte à rebours
         }
 
+        // Démarre le compte à rebours visuel
         function startTimer(minutes) {
-            clearTimer();
-            let timeLeft = minutes * 60;
+            clearTimer(); // Arrête tout timer précédent
+            let timeLeft = minutes * 60; // Temps en secondes
             const timerDisplay = document.getElementById('timer');
+            // Affiche immédiatement le temps restant
+            const initialMin = Math.floor(timeLeft / 60);
+            const initialSec = timeLeft % 60;
+            timerDisplay.innerText = `Hibernation dans : ${initialMin}m ${initialSec}s`;
+
             timerInterval = setInterval(() => {
-                if (timeLeft <= 0) {
+                timeLeft--; // Décrémente le temps
+                if (timeLeft < 0) { // Vérifie si le temps est écoulé
                     clearTimer();
-                    timerDisplay.innerText = "Temps écoulé !";
+                    timerDisplay.innerText = "Hibernation imminente...";
                     return;
                 }
+                // Calcule minutes et secondes restantes
                 const min = Math.floor(timeLeft / 60);
                 const sec = timeLeft % 60;
-                timerDisplay.innerText = `Temps restant : ${min}m ${sec}s`;
-                timeLeft--;
-            }, 1000);
+                // Met à jour l'affichage
+                timerDisplay.innerText = `Hibernation dans : ${min}m ${sec}s`;
+            }, 1000); // Répète toutes les secondes
         }
 
+        // Arrête et efface le compte à rebours
         function clearTimer() {
             if (timerInterval) {
-                clearInterval(timerInterval);
-                document.getElementById('timer').innerText = '';
+                clearInterval(timerInterval); // Arrête l'intervalle
+                timerInterval = null; // Réinitialise la variable
             }
+            document.getElementById('timer').innerText = ''; // Efface l'affichage
         }
     </script>
 </body>
