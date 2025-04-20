@@ -32,13 +32,33 @@
         button:hover {
             background-color: #0056b3;
         }
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 12px;
+            background-color: #28a745;
+            margin-left: 10px;
+        }
+        .copy-button:hover {
+            background-color: #218838;
+        }
+        .copy-button.copied {
+            background-color: #17a2b8;
+        }
         #commands {
             margin-top: 20px;
             padding: 10px;
             background-color: #e9ecef;
             border-radius: 5px;
-            word-wrap: break-word;
             text-align: left;
+        }
+        .command-container {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .command-text {
+            flex-grow: 1;
+            word-wrap: break-word;
         }
         #timer {
             font-size: 24px;
@@ -80,13 +100,27 @@
         <p><strong>Comment exécuter les commandes :</strong><br>
            1. Cliquez sur la loupe ou la barre de recherche en bas à gauche (barre des tâches).<br>
            2. Tapez <code>cmd</code>, faites un clic droit sur "Invite de commandes" et sélectionnez "Exécuter en tant qu'administrateur".<br>
-           3. Copiez chaque commande ci-dessus, collez-la dans la fenêtre noire (clic droit pour coller), et appuyez sur Entrée.<br>
-           4. Exécutez les deux commandes l'une après l'autre.
+           3. Cliquez sur les boutons "Copier" ci-dessus pour copier chaque commande.<br>
+           4. Dans la fenêtre noire de CMD, faites un clic droit pour coller la commande, puis appuyez sur Entrée.<br>
+           5. Exécutez les deux commandes l'une après l'autre.
         </p>
     </div>
 
     <script>
         let timerInterval;
+
+        function copyToClipboard(command, button) {
+            navigator.clipboard.writeText(command).then(() => {
+                button.classList.add('copied');
+                button.innerText = 'Copié !';
+                setTimeout(() => {
+                    button.classList.remove('copied');
+                    button.innerText = 'Copier';
+                }, 2000);
+            }).catch(err => {
+                alert('Erreur lors de la copie : ' + err);
+            });
+        }
 
         function generateCommands() {
             const hibernateDelay = parseInt(document.getElementById('hibernateDelay').value);
@@ -102,9 +136,16 @@
             const wakeDateStr = wakeTime.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-');
             const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "start msedge" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /f`;
 
-            document.getElementById('commands').innerText = 
-                `1. Commande pour l'hibernation dans ${hibernateDelay} minutes :\n${hibernateCommand}\n\n` +
-                `2. Commande pour le réveil à ${wakeTimeStr} le ${wakeDateStr} (ouvre Microsoft Edge) :\n${wakeCommand}`;
+            document.getElementById('commands').innerHTML = `
+                <div class="command-container">
+                    <div class="command-text">1. Commande pour l'hibernation dans ${hibernateDelay} minutes :<br>${hibernateCommand}</div>
+                    <button class="copy-button" onclick="copyToClipboard('${hibernateCommand}', this)">Copier</button>
+                </div>
+                <div class="command-container">
+                    <div class="command-text">2. Commande pour le réveil à ${wakeTimeStr} le ${wakeDateStr} (ouvre Microsoft Edge) :<br>${wakeCommand}</div>
+                    <button class="copy-button" onclick="copyToClipboard('${wakeCommand}', this)">Copier</button>
+                </div>
+            `;
 
             startTimer(hibernateDelay);
         }
@@ -123,10 +164,16 @@
             const wakeDateStr = wakeTime.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-');
             const wakeCommand = `schtasks /create /tn "WakeUpTask" /tr "start msedge" /sc once /sd ${wakeDateStr} /st ${wakeTimeStr} /f`;
 
-            document.getElementById('commands').innerText = 
-                `Mode Test :\n` +
-                `1. Commande pour l'hibernation dans 5 minutes :\n${hibernateCommand}\n\n` +
-                `2. Commande pour le réveil 5 minutes après (à ${wakeTimeStr} le ${wakeDateStr}, ouvre Microsoft Edge) :\n${wakeCommand}`;
+            document.getElementById('commands').innerHTML = `
+                <div class="command-container">
+                    <div class="command-text">Mode Test :<br>1. Commande pour l'hibernation dans 5 minutes :<br>${hibernateCommand}</div>
+                    <button class="copy-button" onclick="copyToClipboard('${hibernateCommand}', this)">Copier</button>
+                </div>
+                <div class="command-container">
+                    <div class="command-text">2. Commande pour le réveil 5 minutes après (à ${wakeTimeStr} le ${wakeDateStr}, ouvre Microsoft Edge) :<br>${wakeCommand}</div>
+                    <button class="copy-button" onclick="copyToClipboard('${wakeCommand}', this)">Copier</button>
+                </div>
+            `;
 
             startTimer(hibernateDelay);
         }
@@ -134,9 +181,16 @@
         function generateCancelCommand() {
             const cancelHibernate = `shutdown /a`;
             const cancelWake = `schtasks /delete /tn WakeUpTask /f`;
-            document.getElementById('commands').innerText = 
-                `1. Commande pour annuler l'hibernation :\n${cancelHibernate}\n\n` +
-                `2. Commande pour annuler le réveil programmé :\n${cancelWake}`;
+            document.getElementById('commands').innerHTML = `
+                <div class="command-container">
+                    <div class="command-text">1. Commande pour annuler l'hibernation :<br>${cancelHibernate}</div>
+                    <button class="copy-button" onclick="copyToClipboard('${cancelHibernate}', this)">Copier</button>
+                </div>
+                <div class="command-container">
+                    <div class="command-text">2. Commande pour annuler le réveil programmé :<br>${cancelWake}</div>
+                    <button class="copy-button" onclick="copyToClipboard('${cancelWake}', this)">Copier</button>
+                </div>
+            `;
             clearTimer();
         }
 
